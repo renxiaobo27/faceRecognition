@@ -26,9 +26,9 @@ app.config['faceDB'] = '/home/att/PycharmProjects/untitled/faceDB/'
 app.config['ALLOWED_EXTENSIONS'] = set(['png','jpg','jpeg'])
 app.config['MAX_CONTENT_LENGTH'] = 15 * 1024 * 1024 # 15M
 app.config['ALIEN_FOLDER'] = '/home/att/PycharmProjects/untitled/mxnet-face/alienresult/'
-
+app.config['THRESHOLD'] = 0.4
 # Port
-app.config['OUTSIDE_PORT_NUMBER'] = 8080
+app.config['OUTSIDE_PORT_NUMBER'] = 8088
 
 
 def faceAlien():
@@ -133,22 +133,25 @@ def upload():
 
         align_face.alignMain_xiaobo(args,ailen,absfilename,filename)
         aligned_face_path = os.path.join(app.config['ALIEN_FOLDER'],filename)
+
         if not os.path.isfile(aligned_face_path): return 'Unable to align the face, bad picture.'
 
-        print aligned_face_path
         print 'numpy: ' + filename
         output = extract_feature.extractFeature(aligned_face_path, symbol, model_args, model_auxs)
-        np.save(os.path.join(app.config['faceDB'],filename),output)
+        #np.save(os.path.join(app.config['faceDB'],filename),output)
         name,score = findRightPerson(output)
+        #return  'ok'
+        if score<app.config['THRESHOLD']:
+            name = '-1'
 
-
+        print 'score ' + str(score) +'   '+name
 
         print '@@@' + aligned_face_path
 
-        return render_template('ret.html', output=name+score,
-                               image_file=url_for('output_file_upload', filename=filename),db_imge=url_for('output_file_aligned', filename=name[:-4]))
+        return '['+ name +']'
+        #return render_template('ret.html', output=name+score,
+        #                       image_file=url_for('output_file_upload', filename=filename),db_imge=url_for('output_file_aligned', filename=name[:-4]))
 
-        #return result
 
 @app.route('/outputUpload/<filename>')
 def output_file_upload(filename):
@@ -159,8 +162,7 @@ def output_file_aligned(filename):
     return send_from_directory(app.config['ALIEN_FOLDER'],filename)
 
 if __name__ == '__main__':
-    a = 'ddd.png.npy'
-    print a.rsplit('.')[0]
+
     db = {}
     args = faceAlien();
     ailen = align_face.getAlign(args)
